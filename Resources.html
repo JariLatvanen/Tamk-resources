@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TAMK resources</title>
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w"
+        crossorigin="anonymous">
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- jQuery library-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.2"> -->
+
+    <style>
+        body {
+            width: 100%;
+            padding: 0px 0px 0px 5px;
+            margin: 1%;
+        }
+
+        .row {
+            border-style: solid;
+            border-width: 0px 0px 1px 0px;
+            padding: 0px 0px 0px 0px;
+            margin: 0px 0px 0px 0px;
+            text-align: left;
+        }
+
+        .head {
+            border-style: solid;
+            border-width: 0px 0px 1px 0px;
+        }
+
+
+        p.col-md-3, p.col-md-6, div.col-md-3, div.col-md-6, #content, #myTable.container {
+            padding: 0px;
+            margin: 0px;
+            text-align: left;
+        }
+
+        .dropdown-menu li:hover {background-color: #f1f1f1}
+
+    </style>
+
+    <script>
+        (function () {
+            'use strict'
+
+            let apiKey = 'XXXXXXXXXXXXXXXX' //API KEY!!!!!!!!!!!!!!!!
+            function startView() {
+                //just get the buildings for the dropdown menu    
+                let burl = 'https://opendata.tamk.fi/r1/reservation/building?'
+
+                fetch(burl + 'apiKey=' + apiKey).then((response) => response.json()).then((json) => {
+                    getBuildings(json)
+                })
+            }
+
+            let building = []
+            let room = []
+            building[0] = ''
+            room[0] = ''
+
+
+            function fetchIt(event) {
+                let tBody = document.getElementById('content')
+                tBody.innerHTML = '' //clear old results
+                let subject
+                var date = new Date()
+
+                document.getElementById('date').innerHTML = date.toJSON()
+                let rangeEnd = document.getElementById('enddate').value + 'T23:59'
+                let rangeStart = date.toJSON() //start date = now
+                if (rangeEnd == 'T23:59') {
+                    rangeEnd = "2017-12-31T00:00" //end of year if nothing given
+                }
+
+         
+
+                let body = {}
+
+                if (event.target.className == 'building') {
+                    room[0] = ''
+                    building[0] = event.target.innerHTML
+                    getRoomData() //for the rooms dropdown
+                }
+
+                if (event.target.className == 'room') {
+                    room[0] = event.target.innerHTML
+                }
+
+                subject = document.getElementById('subject').value
+
+                body = {
+                    "rangeStart": rangeStart,
+                    "rangeEnd": rangeEnd
+                }
+
+                if ((building[0].length) > 1) {
+                        body.building = building
+                }
+
+                if ((room[0].length) > 1) {
+                    body.room = room
+                }
+                
+                if ((subject.length > 0)) {
+                body.subject = subject
+                }
+            
+                let obj = {
+                    'method': 'post',
+                    'body': JSON.stringify(body)
+                }
+
+                document.getElementById('criteria').innerHTML = 'Selections:' + building[0] + ' ' + room[0]
+ 
+
+                let surl = 'https://opendata.tamk.fi/r1/reservation/search?'
+                let sobj = JSON.stringify(obj)
+                console.log(obj)
+                //now search with the criteria
+                fetch(surl + 'apiKey=' + apiKey, obj).then((response) => response.json()).then((json) => {
+                    //console.log(json)
+                    if  (json.reservations[0] !==undefined) {
+                    let table = createTable(json)
+                    document.getElementById('content').appendChild(table)
+                    } else {
+                        document.getElementById('criteria').innerHTML =
+                        document.getElementById('criteria').innerHTML + ' No reservations'
+                    }
+                })
+
+            }
+
+            //not a table: using grid instead
+            function createTable(json) {
+                let table = document.createElement('div')
+                table.setAttribute('class', 'div')
+                table.setAttribute('class', 'container')
+                table.setAttribute('id', 'myTable')
+
+                let td1 = document.createElement('p')
+                td1.setAttribute('class', 'h3')
+                td1.setAttribute('class', 'col-sm-12')
+                td1.setAttribute('class', 'col-md-3')
+
+                let td2 = document.createElement('p')
+                td2.setAttribute('class', 'col-sm-12')
+                td2.setAttribute('class', 'col-md-3')
+
+                let td3 = document.createElement('p')
+                td3.setAttribute('class', 'col-sm-12')
+                td3.setAttribute('class', 'col-md-6')
+                td3.setAttribute('class', 'row')
+
+                td1.innerText = 'Subject'
+                td2.innerText = 'Time'
+                td3.innerText = 'Details'
+
+
+                let tbody = document.createElement('tbody')
+                tbody.setAttribute('class', 'container')
+                table.appendChild(tbody)
+
+                tbody.appendChild(td1)
+                tbody.appendChild(td2)
+                tbody.appendChild(td3)
+
+
+                //filter in what is needed
+                let filterDetails = document.getElementById('details').value
+
+                for (let item of json.reservations) {
+                    let row = createRow(item, filterDetails)
+                    if (row !== 0) {
+                        tbody.appendChild(row)
+                    }
+                }
+                return table
+            }
+
+
+            function createRow(resource, filterDetails) {
+
+                let t3 = pretty(resource.resources)
+                let td3 = document.createElement('div')
+                td3.setAttribute('class', 'col-sm-12')
+                td3.setAttribute('class', 'col-md-6')
+                td3.innerHTML = t3
+
+                if ((filterDetails == '') || (td3.innerText.indexOf(filterDetails) > 0)) {
+                    let tr = document.createElement('div')
+                    tr.setAttribute('id', resource.id)
+                    tr.setAttribute('class', 'row')
+                    let td1 = document.createElement('div')
+                    td1.setAttribute('class', 'col-sm-12')
+                    td1.setAttribute('class', 'col-md-3')
+                    let td2 = document.createElement('div')
+                    td2.setAttribute('class', 'col-sm-12')
+                    td2.setAttribute('class', 'col-md-3')
+
+                    tr.appendChild(td1)
+                    tr.appendChild(td2)
+                    tr.appendChild(td3)
+
+                    td1.innerText = resource.subject
+                    td2.innerText = resource.startDate + '\r' + resource.endDate
+
+                    return tr
+                }
+                return 0
+            }
+
+            //make col3 a little more understandable
+            function pretty(obj) {
+                let res = ''
+                for (let item of obj) {
+                    res = res + item.type + ":" + item.code + ":" + item.name + "\r"
+                }
+                return res
+            }
+
+            //build drop down menu
+            function getBuildings(obj) {
+                let ul = document.getElementById('buildinglist')
+                for (let item of obj.resources) {
+                    let li = document.createElement('li')
+                    li.innerHTML = item.code
+                    li.id = item.id
+                    li.setAttribute('class', 'building')
+                    ul.appendChild(li)
+                    li.addEventListener('click', fetchIt);
+                }
+            }
+
+            //build drop down menu
+            function getRooms(obj) {
+                let ul = document.getElementById('roomlist')
+                ul.innerHTML = ''
+                for (let item of obj.resources) {
+                    let li = document.createElement('li')
+                    li.innerHTML = item.code
+                    li.id = item.code
+                    li.setAttribute('class', 'room')
+                    ul.appendChild(li)
+                    li.addEventListener('click', fetchIt);
+                }
+            }
+
+            function getRoomData() {
+                let burl = 'https://opendata.tamk.fi/r1/reservation/building/' + event.target.id + '?'
+                fetch(burl + 'apiKey=' + apiKey).then((response) => response.json()).then((json) => {
+                    getRooms(json)
+                })
+            }
+
+            function clear() {
+            building[0] = ''
+            room[0] = ''
+            document.getElementById('subject').value=''
+            document.getElementById('details').value=''
+            document.getElementById('criteria').innerHTML = 'Selections:' + building[0] + ' ' + room[0]
+
+            fetchIt
+            }
+
+            window.addEventListener('load', (event) => {
+                startView();
+                document.getElementById('details').addEventListener('change', fetchIt);
+                document.getElementById('subject').addEventListener('change', fetchIt);
+                document.getElementById('enddate').addEventListener('change', fetchIt);
+                document.getElementById('clear').addEventListener('click', clear);
+            })
+
+        }())
+    </script>
+</head>
+
+<body>
+
+    <ul class="nav nav-pills">
+        <li>
+            <div class="dropdown">
+                <button id="building" class="btn-lg btn-primary btn-block dropdown-toggle" type="button" data-toggle="dropdown">Building<span class="caret"></span></button>
+                <ul id="buildinglist" class="dropdown-menu">
+                </ul>
+            </div>
+        </li>
+        <li>
+            <div class="dropdown">
+                <button id="room" class="btn-lg btn-primary btn-block dropdown-toggle" type="button" data-toggle="dropdown">Room<span class="caret"></span></button>
+                <ul id="roomlist" class="dropdown-menu">
+                </ul>
+        </li>
+        <li>
+            <button id="clear" class="btn-lg btn-primary" type="button">Clear selections</span></button>
+        </li>
+        
+
+    </ul>
+
+    <fieldset>
+        <legend></legend>
+        Search by field content: <br/>
+        <input type="text" id="subject" placeholder="subject free-text">
+        <input type="text" id="details" placeholder="details free-text">
+        <br></br>End date: <input type="date" id="enddate" value="" placeholder="end date">
+    </fieldset>
+
+    <br></br>Reservations for 2017 starting from:
+    <p id=date></p>
+    <p id=criteria></p>
+    <div id="content"></div>
+
+</body>
+
+</html>
