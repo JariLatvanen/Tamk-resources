@@ -1,3 +1,12 @@
+<script>
+    /**
+        * @fileOverview An app to get resources reservations from TAMK Open data
+        * @author Jari Latvanen
+        * @version 1.0
+        */
+
+</script>
+
 <!DOCTYPE html>
 <html>
 
@@ -38,14 +47,20 @@
         }
 
 
-        p.col-md-3, p.col-md-6, div.col-md-3, div.col-md-6, #content, #myTable.container {
+        p.col-md-3,
+        p.col-md-6,
+        div.col-md-3,
+        div.col-md-6,
+        #content,
+        #myTable.container {
             padding: 0px;
             margin: 0px;
             text-align: left;
         }
 
-        .dropdown-menu li:hover {background-color: #f1f1f1}
-
+        .dropdown-menu li:hover {
+            background-color: #f1f1f1
+        }
     </style>
 
     <script>
@@ -53,10 +68,13 @@
             'use strict'
 
             let apiKey = 'XXXXXXXXXXXXXXXX' //API KEY!!!!!!!!!!!!!!!!
-            function startView() {
-                //just get the buildings for the dropdown menu    
-                let burl = 'https://opendata.tamk.fi/r1/reservation/building?'
 
+            /** just get the buildings for the dropdown menu  
+             */
+            // 
+            function startView() {
+                //  
+                let burl = 'https://opendata.tamk.fi/r1/reservation/building?'
                 fetch(burl + 'apiKey=' + apiKey).then((response) => response.json()).then((json) => {
                     getBuildings(json)
                 })
@@ -66,8 +84,12 @@
             let room = []
             building[0] = ''
             room[0] = ''
-
-
+            
+            /**
+             * Main function. Check input values and fetch data from the Open Data API
+             * @param {object} event - the dropdown element that has been clicked
+             */
+            // 
             function fetchIt(event) {
                 let tBody = document.getElementById('content')
                 tBody.innerHTML = '' //clear old results
@@ -80,8 +102,6 @@
                 if (rangeEnd == 'T23:59') {
                     rangeEnd = "2017-12-31T00:00" //end of year if nothing given
                 }
-
-         
 
                 let body = {}
 
@@ -103,43 +123,46 @@
                 }
 
                 if ((building[0].length) > 1) {
-                        body.building = building
+                    body.building = building
                 }
 
                 if ((room[0].length) > 1) {
                     body.room = room
                 }
-                
+
                 if ((subject.length > 0)) {
-                body.subject = subject
+                    body.subject = subject
                 }
-            
+
                 let obj = {
                     'method': 'post',
                     'body': JSON.stringify(body)
                 }
 
                 document.getElementById('criteria').innerHTML = 'Selections:' + building[0] + ' ' + room[0]
- 
+
 
                 let surl = 'https://opendata.tamk.fi/r1/reservation/search?'
                 let sobj = JSON.stringify(obj)
-                console.log(obj)
+
                 //now search with the criteria
                 fetch(surl + 'apiKey=' + apiKey, obj).then((response) => response.json()).then((json) => {
                     //console.log(json)
-                    if  (json.reservations[0] !==undefined) {
-                    let table = createTable(json)
-                    document.getElementById('content').appendChild(table)
+                    if (json.reservations[0] !== undefined) {
+                        let table = createTable(json)
+                        document.getElementById('content').appendChild(table)
                     } else {
                         document.getElementById('criteria').innerHTML =
-                        document.getElementById('criteria').innerHTML + ' No reservations'
+                            document.getElementById('criteria').innerHTML + ' No reservations'
                     }
                 })
 
             }
 
-            //not a table: using grid instead
+            /**
+             * Build the result list including headers. Uses bootstrap grid (not a table)
+             * @param {object} json - results reservations from the api
+             */
             function createTable(json) {
                 let table = document.createElement('div')
                 table.setAttribute('class', 'div')
@@ -174,7 +197,7 @@
                 tbody.appendChild(td3)
 
 
-                //filter in what is needed
+                //filter by details column if users wants to
                 let filterDetails = document.getElementById('details').value
 
                 for (let item of json.reservations) {
@@ -185,6 +208,13 @@
                 }
                 return table
             }
+
+            /**
+             * Add row to the results list
+             * @param {object} resource - one reserved resource
+             * @param {string} filterDetails - user input to only show some rows based on the details field
+             * 
+             */
 
 
             function createRow(resource, filterDetails) {
@@ -218,7 +248,13 @@
                 return 0
             }
 
-            //make col3 a little more understandable
+            /**
+             * make col3 (details) a little more understandable
+             * @param {object} resource - one reserved resource
+             * @return {String} a more readable resource list
+             * 
+             */
+
             function pretty(obj) {
                 let res = ''
                 for (let item of obj) {
@@ -227,7 +263,11 @@
                 return res
             }
 
-            //build drop down menu
+            /**
+            * build drop down menu for buildings
+            * @param {object} obj - list of the buildings avalailable
+            * 
+            */
             function getBuildings(obj) {
                 let ul = document.getElementById('buildinglist')
                 for (let item of obj.resources) {
@@ -240,7 +280,12 @@
                 }
             }
 
-            //build drop down menu
+            /**
+             * build drop down menu for room
+             * @param {object} obj - list of the rooms avalailable in a building
+             * 
+             */
+
             function getRooms(obj) {
                 let ul = document.getElementById('roomlist')
                 ul.innerHTML = ''
@@ -254,6 +299,10 @@
                 }
             }
 
+            /**
+             * get rooms in a building
+             * 
+             */
             function getRoomData() {
                 let burl = 'https://opendata.tamk.fi/r1/reservation/building/' + event.target.id + '?'
                 fetch(burl + 'apiKey=' + apiKey).then((response) => response.json()).then((json) => {
@@ -261,16 +310,24 @@
                 })
             }
 
+            /**
+            * clear user input
+            * 
+            */
             function clear() {
-            building[0] = ''
-            room[0] = ''
-            document.getElementById('subject').value=''
-            document.getElementById('details').value=''
-            document.getElementById('criteria').innerHTML = 'Selections:' + building[0] + ' ' + room[0]
+                building[0] = ''
+                room[0] = ''
+                document.getElementById('subject').value = ''
+                document.getElementById('details').value = ''
+                document.getElementById('criteria').innerHTML = 'Selections:' + building[0] + ' ' + room[0]
 
-            fetchIt
+                fetchIt
             }
 
+            /**
+             * add event listeners
+             * 
+             */
             window.addEventListener('load', (event) => {
                 startView();
                 document.getElementById('details').addEventListener('change', fetchIt);
@@ -302,7 +359,7 @@
         <li>
             <button id="clear" class="btn-lg btn-primary" type="button">Clear selections</span></button>
         </li>
-        
+
 
     </ul>
 
